@@ -72,6 +72,16 @@ namespace PureDark.VRising.PerfMod
             Log.Debug("Load ffx_fsr2_api_x64.dll result: " + result);
             result = LoadLibrary("ffx_fsr2_api_dx12_x64.dll");
             Log.Debug("Load ffx_fsr2_api_dx12_x64.dll result: " + result);
+            result = LoadLibrary("dxil.dll");
+            Log.Debug("Load dxil.dll result: " + result);
+            result = LoadLibrary("dxcompiler.dll");
+            Log.Debug("Load dxcompiler.dll result: " + result);
+            result = LoadLibrary("XeFX.dll");
+            Log.Debug("Load XeFX.dll result: " + result);
+            result = LoadLibrary("XeFX_Loader.dll");
+            Log.Debug("Load XeFX_Loader.dll result: " + result);
+            result = LoadLibrary("libxess.dll");
+            Log.Debug("Load libxess.dll result: " + result);
             result = LoadLibrary("PDPerfPlugin.dll");
             Log.Debug("Load PDPerfPlugin.dll result: " + result);
             if ((int)result == 0)

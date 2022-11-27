@@ -24,13 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BepInEx.Analyzers" Version="1.0.*">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>G:\SteamLibrary\steamapps\common\VRising\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>

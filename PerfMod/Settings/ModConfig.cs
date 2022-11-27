@@ -16,6 +16,7 @@ namespace PureDark.VRising.PerfMod.Settings
         internal static ConfigEntry<UpscaleMethod> UpscaleMethod { get; private set; }
         internal static ConfigEntry<UpscaleProfile> UpscaleProfile { get; private set; }
         internal static ConfigEntry<float> Sharpness { get; private set; }
+        internal static ConfigEntry<KeyCode> CombinationKey { get; private set; }
 
         internal static void Init()
         {
@@ -36,6 +37,12 @@ namespace PureDark.VRising.PerfMod.Settings
                 "Sharpness",
                 1f,
                 "The sharpness value to use when Upscaling is on, setting it = 0 to disable sharpening."
+            );
+            CombinationKey = configFile.Bind<KeyCode>(
+                "Hotkey Settings",
+                "Combination Key",
+                KeyCode.LeftControl,
+                "Combination key for other keys, set it to KeyCode.None to disable key combination."
             );
         }
 

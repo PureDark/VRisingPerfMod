@@ -45,77 +45,109 @@ namespace PureDark.VRising.PerfMod.Upscale
 
         public void Update()
         {
-            if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftAlt) && Input.GetKeyUp(KeyCode.D))
+            bool keyCombination = (ModConfig.CombinationKey.Value != KeyCode.None) ? Input.GetKey(ModConfig.CombinationKey.Value) : true;
+            if (keyCombination && Input.GetKeyUp(KeyCode.Keypad1))
             {
-                UpscaleFlat.ToggleUpscaleFeature();
+                if(IsUpscaleEnabled() && UpscaleFlat.upscaleMethod == UpscaleMethod.DLSS)
+                    UpscaleFlat.ToggleUpscaleFeature(false);
+                else
+                    UpscaleFlat.SwitchUpscaleMethod(UpscaleMethod.DLSS);
+                textDisplayTime = 30f;
+            }
+            if (keyCombination && Input.GetKeyUp(KeyCode.Keypad2))
+            {
+                if (IsUpscaleEnabled() && UpscaleFlat.upscaleMethod == UpscaleMethod.FSR2)
+                    UpscaleFlat.ToggleUpscaleFeature(false);
+                else
+                    UpscaleFlat.SwitchUpscaleMethod(UpscaleMethod.FSR2);
+                textDisplayTime = 30f;
+            }
+            if (keyCombination && Input.GetKeyUp(KeyCode.Keypad3))
+            {
+                if (IsUpscaleEnabled() && UpscaleFlat.upscaleMethod == UpscaleMethod.XESS)
+                    UpscaleFlat.ToggleUpscaleFeature(false);
+                else
+                    UpscaleFlat.SwitchUpscaleMethod(UpscaleMethod.XESS);
+                textDisplayTime = 30f;
+            }
+            if (keyCombination && Input.GetKeyUp(KeyCode.Keypad4))
+            {
+                if (IsUpscaleEnabled() && UpscaleFlat.upscaleMethod == UpscaleMethod.DLAA)
+                    UpscaleFlat.ToggleUpscaleFeature(false);
+                else
+                    UpscaleFlat.SwitchUpscaleMethod(UpscaleMethod.DLAA);
                 textDisplayTime = 30f;
             }
             if (IsUpscaleEnabled())
             {
-                if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftAlt) && Input.GetKeyUp(KeyCode.F))
-                {
-                    UpscaleFlat.SwitchUpscaleMethod();
-                    textDisplayTime = 30f;
-                }
-                if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyUp(KeyCode.UpArrow))
+                if (keyCombination && Input.GetKeyUp(KeyCode.UpArrow))
                 {
                     UpscaleFlat.SwitchProfile(true);
                     textDisplayTime = 30f;
                 }
-                if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyUp(KeyCode.DownArrow))
+                if (keyCombination && Input.GetKeyUp(KeyCode.DownArrow))
                 {
                     UpscaleFlat.SwitchProfile(false);
                     textDisplayTime = 30f;
                 }
-                if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyUp(KeyCode.LeftArrow))
+                if (keyCombination && Input.GetKeyUp(KeyCode.LeftArrow))
                 {
                     UpscaleFlat.SetSharpness(UpscaleFlat.Sharpness - 0.05f);
                     textDisplayTime = 30f;
                 }
-                if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyUp(KeyCode.RightArrow))
+                if (keyCombination && Input.GetKeyUp(KeyCode.RightArrow))
                 {
                     UpscaleFlat.SetSharpness(UpscaleFlat.Sharpness + 0.05f);
                     textDisplayTime = 30f;
                 }
-                if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyUp(KeyCode.Keypad0))
+                if (keyCombination && Input.GetKeyUp(KeyCode.Keypad0))
                 {
                     UpscaleFlat.ResetSharpness();
                     textDisplayTime = 30f;
                 }
-                if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyUp(KeyCode.Keypad3))
+                if (keyCombination && Input.GetKeyUp(KeyCode.Keypad3))
                 {
                     UpscaleFlat.RefreshMipmapBias();
                 }
-            }
-            if(IsUpscaleEnabled() && (Time.realtimeSinceStartup - UpscaleFlat.lastTimeSetMipBias > 600))
-            {
-                UpscaleFlat.RefreshMipmapBias();
-            }
-            if (IsUpscaleEnabled() && Input.GetKeyUp(KeyCode.Keypad2))
-            {
-            }
-            if (IsUpscaleEnabled() && Input.GetKeyUp(KeyCode.Keypad3))
-            {
+                if (Time.realtimeSinceStartup - UpscaleFlat.lastTimeSetMipBias > 600)
+                {
+                    UpscaleFlat.RefreshMipmapBias();
+                }
             }
         }
 
         void OnGUI()
         {
-            var SSName = (UpscaleFlat.upscaleMethod == UpscaleMethod.FSR2) ? "FSRv2.1" : "DLSSv2.4";
-            var SSName2 = (UpscaleFlat.upscaleMethod == UpscaleMethod.FSR2) ? "DLSSv2.4" : "FSRv2.1";
+            var SSName = "";
+            switch (UpscaleFlat.upscaleMethod)
+            {
+                case UpscaleMethod.DLSS:
+                    SSName = "DLSSv2.4";
+                    break;
+                case UpscaleMethod.FSR2:
+                    SSName = "FSRv2.4";
+                    break;
+                case UpscaleMethod.XESS:
+                    SSName = "XeSSv1.0.1";
+                    break;
+                case UpscaleMethod.DLAA:
+                    SSName = "DLAA";
+                    break;
+
+            }
             var GAPI = (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11) ? "DX11" : "DX12";
             if (textDisplayTime > 0)
             {
                 if (IsUpscaleEnabled())
                 {
-                    GUI.Label(new Rect(textFont.fontSize, Screen.height - textFont.fontSize * 4, textFont.fontSize * 10, textFont.fontSize * 3), SSName + " " + GAPI + " " + UpscaleFlat.currentProfile.ToString()
+                    GUI.Label(new Rect(textFont.fontSize, Screen.height - textFont.fontSize * 4, textFont.fontSize * 10, textFont.fontSize * 3), SSName + " " + GAPI + " " + UpscaleFlat.qualityLevel.ToString()
                         + "(" + UpscaleFlat.renderWidth + "," + UpscaleFlat.renderHeight + " -> " + Screen.width + "," + Screen.height + ")\r\n"
-                        + "CTRL+ALT+D To Turn Off " + SSName + "    ||    CTRL+ALT+F To Switch To " + SSName2 + "\r\n"
+                        + "CTRL+NumPad1/2/3/4 To Turn Switch Between DLSS/FSR2/XeSS/DLAA || Press Again To Turn It Off.\r\n"
                         + "CTRL+↑/↓ To Change Profile  ||  CTRL+←/→ To Addjust Sharpness(" + UpscaleFlat.Sharpness + ")\r\n", textFont);
                 }
                 else
                     GUI.Label(new Rect(textFont.fontSize, Screen.height - textFont.fontSize * 4, textFont.fontSize * 10, textFont.fontSize * 3), SSName + " Off\r\n"
-                        + "CTRL+ALT+D To Turn On " + SSName, textFont);
+                        + "CTRL+NumPad1/2/3/4 To Switch Between DLSS/FSR2/XeSS/DLAA || Press Again To Turn It Off.", textFont);
                 textDisplayTime -= Time.deltaTime;
 
                 if (IsUpscaleEnabled())

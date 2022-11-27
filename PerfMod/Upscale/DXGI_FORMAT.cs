@@ -139,7 +139,8 @@ namespace PureDark.VRising.PerfMod.Upscale
     {
         DLSS,
         FSR2,
-        XESS
+        XESS,
+        DLAA
     }
     public enum UpscaleProfile
     {

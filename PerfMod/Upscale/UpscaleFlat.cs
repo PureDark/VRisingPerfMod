@@ -37,9 +37,9 @@ namespace PureDark.VRising.PerfMod.Upscale
             }
         }
 
-        public bool DLSSEnabled = false;
+        public bool UpscalerEnabled = false;
 
-        public bool IsActive() => DLSSEnabled;
+        public bool IsActive() => UpscalerEnabled;
 
         //public override CustomPostProcessInjectionPoint injectionPoint => CustomPostProcessInjectionPoint.AfterPostProcess;
 
@@ -63,7 +63,7 @@ namespace PureDark.VRising.PerfMod.Upscale
 
         private UpscaleParams upscaleParams;
 
-        public UpscaleProfile currentProfile = UpscaleProfile.MaxPerformance;
+        public UpscaleProfile qualityLevel = UpscaleProfile.MaxPerformance;
 
         public struct UpscaleParams
         {
@@ -71,20 +71,26 @@ namespace PureDark.VRising.PerfMod.Upscale
             public IntPtr color;
             public IntPtr motionVector;
             public IntPtr depth;
+            public IntPtr mask;
             public IntPtr destination;
+            public float renderSizeX;
+            public float renderSizeY;
             public float sharpness;
             public float jitterOffsetX;
             public float jitterOffsetY;
+            public float motionScaleX;
+            public float motionScaleY;
             public bool reset;
             public float nearPlane;
             public float farPlane;
             public float veticalFOV;
+            public bool execute;
         }
 
         public void Setup()
         {
             upscaleMethod = ModConfig.UpscaleMethod.Value;
-            currentProfile = ModConfig.UpscaleProfile.Value;
+            qualityLevel = ModConfig.UpscaleProfile.Value;
             Sharpness = ModConfig.Sharpness.Value;
             displayWidth = Screen.width;
             displayHeight = Screen.height;
@@ -101,7 +107,7 @@ namespace PureDark.VRising.PerfMod.Upscale
                 SetupGraphicDevice(rt.GetNativeTexturePtr(), GraphicsAPI.D3D11);
             else
             {
-                DLSSEnabled = false;
+                UpscalerEnabled = false;
                 return;
             }
 
@@ -111,11 +117,21 @@ namespace PureDark.VRising.PerfMod.Upscale
             var format = HDRenderPipeline.currentPipeline.currentPlatformRenderPipelineSettings.colorBufferFormat == ColorBufferFormat.R16G16B16A16
                 ? DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT
                 : DXGI_FORMAT.DXGI_FORMAT_R11G11B10_FLOAT;
-            var texPtr = InitUpscaleFeature(id, upscaleMethod, currentProfile, displayWidth, displayHeight, false, true, true, false, true, true, format);
+            var um = (upscaleMethod == UpscaleMethod.DLAA) ? UpscaleMethod.DLSS : upscaleMethod;
+            var texPtr = SimpleInit(id, um, qualityLevel, displayWidth, displayHeight, false, true, true, false, (Sharpness != 0), true, format);
             OutColor = Texture2D.CreateExternalTexture(displayWidth, displayHeight, TextureFormat.RGBA64, false, false, texPtr);
-
-            renderWidth = GetRenderWidth(id);
-            renderHeight = GetRenderHeight(id);
+            if(upscaleMethod == UpscaleMethod.DLAA)
+            {
+                renderWidth = displayWidth;
+                renderHeight = displayHeight;
+                renderScale = 1.0f;
+            }
+            else
+            {
+                renderWidth = GetRenderWidth(id);
+                renderHeight = GetRenderHeight(id);
+                renderScale = (float)renderWidth / Screen.width;
+            }
             if (Sharpness < -1f)
                 Sharpness = GetOptimalSharpness(id);
 
@@ -125,7 +141,6 @@ namespace PureDark.VRising.PerfMod.Upscale
             RenderPipelineManager.endCameraRendering -= new Action<ScriptableRenderContext, Camera>(RenderPipelineManager_endCameraRendering);
             RenderPipelineManager.endCameraRendering += new Action<ScriptableRenderContext, Camera>(RenderPipelineManager_endCameraRendering);
 
-            renderScale = (float)renderWidth / Screen.width;
             maxJitterCount = 8 * ((int)(1.0f / renderScale) ^ 2);
             if (maxJitterCount == 0)
                 maxJitterCount = 64;
@@ -156,21 +171,26 @@ namespace PureDark.VRising.PerfMod.Upscale
             if (motionVectorTex != null)
             {
                 upscaleParams.id = id;
-                upscaleParams.color = colorTex.GetNativeTexturePtr();
+                upscaleParams.color = source.rt.GetNativeTexturePtr();
                 upscaleParams.motionVector = motionVectorTex.GetNativeTexturePtr();
                 upscaleParams.depth = depthTex.GetNativeTexturePtr();
                 upscaleParams.destination = destination.rt.GetNativeTexturePtr();
+                upscaleParams.renderSizeX = renderWidth;
+                upscaleParams.renderSizeY = renderHeight;
                 upscaleParams.sharpness = Sharpness;
                 upscaleParams.jitterOffsetX = -camera.taaJitter.x;
                 upscaleParams.jitterOffsetY = -camera.taaJitter.y;
+                upscaleParams.motionScaleX = -renderWidth;
+                upscaleParams.motionScaleY = -renderHeight;
                 upscaleParams.reset = camera.isFirstFrame;
                 upscaleParams.nearPlane = camera.camera.nearClipPlane;
                 upscaleParams.farPlane = camera.camera.farClipPlane;
                 upscaleParams.veticalFOV = camera.camera.fieldOfView * Mathf.Deg2Rad;
-                SetupUpscaleParams(upscaleParams.id, upscaleParams.color, upscaleParams.motionVector, upscaleParams.depth, upscaleParams.destination, upscaleParams.sharpness,
-                    upscaleParams.jitterOffsetX, upscaleParams.jitterOffsetY, upscaleParams.reset, upscaleParams.nearPlane, upscaleParams.farPlane, upscaleParams.veticalFOV);
-                cmd.IssuePluginEvent(GetUpscaleFunc(), 0);
-                cmd.Blit(OutColor, destination);
+                upscaleParams.execute = true;
+                SetupUpscaleParams(upscaleParams.id, upscaleParams.color, upscaleParams.motionVector, upscaleParams.depth, IntPtr.Zero, upscaleParams.destination, upscaleParams.renderSizeX, upscaleParams.renderSizeY, upscaleParams.sharpness,
+                    upscaleParams.jitterOffsetX, upscaleParams.jitterOffsetY, upscaleParams.motionScaleX, upscaleParams.motionScaleY, upscaleParams.reset, upscaleParams.nearPlane, upscaleParams.farPlane, upscaleParams.veticalFOV, upscaleParams.execute);
+                cmd.IssuePluginEvent(GetEvaluateFunc(), upscaleParams.id);
+                //cmd.Blit(OutColor, destination);
                 var hdrp = RenderPipelineManager.currentPipeline.Cast<HDRenderPipeline>();
                 camera.screenSize = screenSize;
                 hdrp.UpdateShaderVariablesGlobalCB(camera, cmd);
@@ -198,82 +218,50 @@ namespace PureDark.VRising.PerfMod.Upscale
 
         public void ToggleUpscaleFeature()
         {
-            ToggleUpscaleFeature(!DLSSEnabled);
+            ToggleUpscaleFeature(!UpscalerEnabled);
         }
 
         public void ToggleUpscaleFeature(bool enable)
         {
             if (enable)
             {
-                if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11)
-                {
-                    if (upscaleMethod == UpscaleMethod.DLSS)
-                    {
-                        Setup();
-                        DLSSEnabled = true;
-                        RefreshMipmapBias();
-                    }
-                    else
-                        MelonCoroutines.Start(DelayEnableUpscale(0.1f));
-                }
-                else if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12)
-                    MelonCoroutines.Start(DelayEnableUpscale(0.1f));
-            }
-            else
-            {
-                DLSSEnabled = false;
-                RefreshMipmapBias();
-            }
-        }
-
-        public void SwitchUpscaleMethod()
-        {
-            ToggleUpscaleMethod(upscaleMethod != UpscaleMethod.FSR2);
-        }
-
-        public void ToggleUpscaleMethod(bool enable)
-        {
-
-            if (enable)
-            {
-                ModConfig.UpscaleMethod.Value = UpscaleMethod.FSR2;
-                ModConfig.Save();
-                ToggleUpscaleFeature(false);
-                upscaleMethod = UpscaleMethod.FSR2;
                 MelonCoroutines.Start(DelayEnableUpscale(0.1f));
             }
             else
             {
-                ModConfig.UpscaleMethod.Value = UpscaleMethod.DLSS;
-                ModConfig.Save();
-                ToggleUpscaleFeature(false);
-                upscaleMethod = UpscaleMethod.DLSS;
-                if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11)
-                    ToggleUpscaleFeature(true);
-                else if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12)
-                    MelonCoroutines.Start(DelayEnableUpscale(0.1f));
+                UpscalerEnabled = false;
+                RefreshMipmapBias();
             }
+        }
+
+        public void SwitchUpscaleMethod(UpscaleMethod method)
+        {
+            ModConfig.UpscaleMethod.Value = method;
+            ModConfig.Save();
+            ToggleUpscaleFeature(false);
+            upscaleMethod = method;
+            MelonCoroutines.Start(DelayEnableUpscale(0.1f));
         }
 
         public void SwitchProfile(bool up)
         {
             ToggleUpscaleFeature(false);
-            switch (currentProfile)
+            switch (qualityLevel)
             {
                 case UpscaleProfile.UltraPerformance:
-                    currentProfile = (up) ? UpscaleProfile.MaxPerformance : UpscaleProfile.UltraPerformance;
+                    qualityLevel = (up) ? UpscaleProfile.MaxPerformance : UpscaleProfile.UltraPerformance;
                     break;
                 case UpscaleProfile.MaxPerformance:
-                    currentProfile = (up) ? UpscaleProfile.Balanced : UpscaleProfile.UltraPerformance;
+                    qualityLevel = (up) ? UpscaleProfile.Balanced : UpscaleProfile.UltraPerformance;
                     break;
                 case UpscaleProfile.Balanced:
-                    currentProfile = (up) ? UpscaleProfile.MaxQuality : UpscaleProfile.MaxPerformance;
+                    qualityLevel = (up) ? UpscaleProfile.MaxQuality : UpscaleProfile.MaxPerformance;
                     break;
                 case UpscaleProfile.MaxQuality:
-                    currentProfile = (up) ? UpscaleProfile.MaxQuality : UpscaleProfile.Balanced;
+                    qualityLevel = (up) ? UpscaleProfile.MaxQuality : UpscaleProfile.Balanced;
                     break;
             }
-            ModConfig.UpscaleProfile.Value = currentProfile;
+            ModConfig.UpscaleProfile.Value = qualityLevel;
             ModConfig.Save();
             ToggleUpscaleFeature(true);
         }
@@ -282,7 +270,7 @@ namespace PureDark.VRising.PerfMod.Upscale
             yield return new WaitForSeconds(seconds);
             Setup();
             yield return new WaitForSeconds(seconds);
-            DLSSEnabled = true;
+            UpscalerEnabled = true;
             RefreshMipmapBias();
         }
 
@@ -301,7 +289,7 @@ namespace PureDark.VRising.PerfMod.Upscale
         public float lastTimeSetMipBias = 0;
         public void RefreshMipmapBias()
         {
-            var mipbias = (DLSSEnabled)?GetOptimalMipmapBias(id) : 0;
+            var mipbias = (UpscalerEnabled)?GetOptimalMipmapBias(id) : 0;
             var list = Resources.FindObjectsOfTypeAll(UnhollowerRuntimeLib.Il2CppType.Of<Texture>());
             foreach (var item in list)
             {
@@ -310,14 +298,16 @@ namespace PureDark.VRising.PerfMod.Upscale
             lastTimeSetMipBias = Time.realtimeSinceStartup;
         }
 
+
         [DllImport("PDPerfPlugin")]
         private static extern bool SetupGraphicDevice(IntPtr tex, GraphicsAPI api = GraphicsAPI.D3D11);
         [DllImport("PDPerfPlugin")]
-        private static extern IntPtr InitUpscaleFeature(int id, UpscaleMethod upscaleType, UpscaleProfile mode, int displaySizeX, int displaySizeY, bool isContentHDR, bool depthInverted, bool YAxisInverted, bool motionVetorsJittered,
-            bool enableSharpening, bool enableAutoExposure, DXGI_FORMAT format = DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT);
+        private static extern IntPtr SimpleInit(int id, UpscaleMethod upscaleType, UpscaleProfile qualityLevel, int displaySizeX, int displaySizeY, bool isContentHDR, bool depthInverted, bool YAxisInverted,
+            bool motionVetorsJittered, bool enableSharpening, bool enableAutoExposure, DXGI_FORMAT format = DXGI_FORMAT.DXGI_FORMAT_R16G16B16A16_FLOAT);
 
         [DllImport("PDPerfPlugin")]
-        private static extern void EvaluateUpscale(int id, IntPtr color, IntPtr depth, IntPtr motionVector, IntPtr destination, float sharpness, float jitterOffsetX, float jitterOffsetY, bool reset, float nearPlane, float farPlane, float verticalFOV);
+        private static extern void SimpleEvaluate(int id, IntPtr color, IntPtr motionVector, IntPtr depth, IntPtr mask, IntPtr destination, int renderSizeX, int renderSizeY, float sharpness,
+            float jitterOffsetX, float jitterOffsetY, int motionScaleX, int motionScaleY, bool reset, float nearPlane, float farPlane, float verticalFOV, bool execute = true);
 
         [DllImport("PDPerfPlugin")]
         private static extern int GetRenderWidth(int id = 1);
@@ -329,13 +319,14 @@ namespace PureDark.VRising.PerfMod.Upscale
         public static extern float GetOptimalMipmapBias(int id = 1);
 
         [DllImport("PDPerfPlugin")]
-        private static extern IntPtr GetUpscaleWithDataFunc();
+        private static extern IntPtr GetEvaluateWithDataFunc();
 
         [DllImport("PDPerfPlugin")]
-        private static extern IntPtr GetUpscaleFunc();
+        private static extern IntPtr GetEvaluateFunc();
 
         [DllImport("PDPerfPlugin")]
-        private static extern void SetupUpscaleParams(int id, IntPtr color, IntPtr motionVector, IntPtr depth, IntPtr destination, float sharpness, float jitterOffsetX, float jitterOffsetY, bool reset, float nearPlane, float farPlane, float verticalFOV);
+        private static extern void SetupUpscaleParams(int id, IntPtr color, IntPtr motionVector, IntPtr depth, IntPtr mask, IntPtr destination, float renderSizeX, float renderSizeY, float sharpness,
+            float jitterOffsetX, float jitterOffsetY, float motionScaleX, float motionScaleY, bool reset, float nearPlane, float farPlane, float verticalFOV, bool execute = true);
 
         [DllImport("PDPerfPlugin")]
         private static extern void ReleaseUpscaleFeature(int id);
@@ -355,7 +346,7 @@ namespace PureDark.VRising.PerfMod.Upscale
         public delegate void LogDelegate(IntPtr message, int iSize);
 
         [DllImport("PDPerfPlugin", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void InitCSharpDelegate(LogDelegate log);
+        public static extern void InitLogDelegate(LogDelegate log);
 
         public static void LogMessageFromCpp(IntPtr message, int iSize)
         {
@@ -363,7 +354,7 @@ namespace PureDark.VRising.PerfMod.Upscale
         }
         public static void ShowLog()
         {
-            InitCSharpDelegate(LogMessageFromCpp);
+            InitLogDelegate(LogMessageFromCpp);
         }
 
     }
