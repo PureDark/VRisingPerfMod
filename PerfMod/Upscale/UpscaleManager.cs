@@ -1,5 +1,4 @@
-﻿using PureDark.VRising.PerfMod.MISC;
-using PureDark.VRising.PerfMod.Settings;
+﻿using PureDark.VRising.PerfMod.Settings;
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;

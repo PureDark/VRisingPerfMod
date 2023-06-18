@@ -3,7 +3,6 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using PureDark.VRising.PerfMod.Upscale;
 using System;
-using static UnityEngine.Rendering.HighDefinition.PostProcessSystem;
 
 namespace PureDark.VRising.PerfMod.Patches
 {

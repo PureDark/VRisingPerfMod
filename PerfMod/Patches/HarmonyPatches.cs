@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using UnityEngine.SceneManagement;
 
 namespace PureDark.VRising.PerfMod.Patches
 {
@@ -12,12 +11,12 @@ namespace PureDark.VRising.PerfMod.Patches
             if(Instance == null)
                 Instance = new Harmony("com.PureDark.VRising.PrefMod");
             Instance.PatchAll();
-            Instance.Patch(
-                typeof(UnhollowerBaseLib.LogSupport).GetMethod("Warning", AccessTools.all),
-                new HarmonyMethod(typeof(HarmonyPatches).GetMethod(nameof(HarmonyPatches.UnhollowerWarningPrefix))));
+            // Instance.Patch(
+            //     typeof(LogSupport).GetMethod("Warning", AccessTools.all),
+            //     new HarmonyMethod(typeof(HarmonyPatches).GetMethod(nameof(HarmonyPatches.UnhollowerWarningPrefix))));
         }
 
-        public static bool UnhollowerWarningPrefix(string __0) => !__0.Contains("unsupported return type") && !__0.Contains("unsupported parameter");
+       // public static bool UnhollowerWarningPrefix(string __0) => !__0.Contains("unsupported return type") && !__0.Contains("unsupported parameter");
 
     }
 }
