@@ -121,13 +121,13 @@ namespace PureDark.VRising.PerfMod.Upscale
             switch (UpscaleFlat.upscaleMethod)
             {
                 case UpscaleMethod.DLSS:
-                    SSName = "DLSSv2.4";
+                    SSName = "DLSS";
                     break;
                 case UpscaleMethod.FSR2:
-                    SSName = "FSRv2.4";
+                    SSName = "FSR2";
                     break;
                 case UpscaleMethod.XESS:
-                    SSName = "XeSSv1.0.1";
+                    SSName = "XeSS";
                     break;
                 case UpscaleMethod.DLAA:
                     SSName = "DLAA";
