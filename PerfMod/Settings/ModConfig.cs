@@ -1,8 +1,5 @@
 ﻿using BepInEx.Configuration;
 using BepInEx;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using PureDark.VRising.PerfMod.Upscale;
 

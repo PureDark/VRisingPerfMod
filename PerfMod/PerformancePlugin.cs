@@ -1,7 +1,5 @@
 ﻿using BepInEx;
-using BepInEx.IL2CPP;
 using HarmonyLib;
-using UnhollowerRuntimeLib;
 using BepInEx.Logging;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,6 +12,8 @@ using System.Runtime.InteropServices;
 using System.IO;
 using System.Reflection;
 using System.Security;
+using BepInEx.Unity.IL2CPP;
+using Il2CppInterop.Runtime.Injection;
 
 namespace PureDark.VRising.PerfMod
 {
@@ -23,7 +23,7 @@ namespace PureDark.VRising.PerfMod
         public const string GUID = "PureDark.VRising.PerfMod";
         public const string NAME = "VRisingPerformanceMod";
         public const string AUTHOR = "PureDark/暗暗十分/突破天际的金闪闪";
-        public const string VERSION = "1.0.0";
+        public const string VERSION = "1.1.0";
 
         public static PerformancePlugin Instance { get; private set; }
 

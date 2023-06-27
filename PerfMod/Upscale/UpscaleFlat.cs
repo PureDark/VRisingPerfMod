@@ -3,19 +3,12 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using System;
 using System.Runtime.InteropServices;
-using UnhollowerRuntimeLib;
 using PureDark.VRising.PerfMod.Settings;
-using UnhollowerBaseLib.Attributes;
-using static UnityEngine.Rendering.DebugUI;
 using static UnityEngine.Rendering.HighDefinition.RenderPipelineSettings;
 using PureDark.VRising.PerfMod.Patches;
-using UnityEngine.Experimental.Rendering;
 using System.Collections;
 using PureDark.VRising.PerfMod.MISC;
-using static PureDark.VRising.PerfMod.PerformancePlugin;
-using System.IO;
-using System.Reflection;
-using System.Threading.Tasks;
+using Il2CppInterop.Runtime;
 
 namespace PureDark.VRising.PerfMod.Upscale
 {
@@ -290,7 +283,7 @@ namespace PureDark.VRising.PerfMod.Upscale
         public void RefreshMipmapBias()
         {
             var mipbias = (UpscalerEnabled)?GetOptimalMipmapBias(id) : 0;
-            var list = Resources.FindObjectsOfTypeAll(UnhollowerRuntimeLib.Il2CppType.Of<Texture>());
+            var list = Resources.FindObjectsOfTypeAll(Il2CppType.Of<Texture>());
             foreach (var item in list)
             {
                 item.Cast<Texture>().mipMapBias = mipbias;
