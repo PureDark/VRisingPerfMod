@@ -34,8 +34,9 @@
     <PackageReference Include="VRising.VampireCommandFramework" Version="0.8.0" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if &quot;$(Username)&quot; == &quot;PureDark&quot; copy /Y &quot;$(TargetPath)&quot; &quot;G:\SteamLibrary\steamapps\common\VRising\BepInEx\plugins\PureDark.PerfMod&quot;" />
+  <Target Name="CopyCustomContent" AfterTargets="AfterBuild">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="G:\SteamLibrary\steamapps\common\VRising\BepInEx\plugins\PureDark.PerfMod" Condition=" '$(Username)' == 'PureDark' " />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="/home/$USER/.local/share/Steam/steamapps/common/VRising/BepInEx/plugins/PureDark.PerfMod" Condition="$([MSBuild]::IsOSPlatform('Linux'))"/>
   </Target>
 
   <ProjectExtensions><VisualStudio><UserProperties externallibraries_4valve_1openvr_4unitysubsystemsmanifest_1json__JsonSchema="https://geojson.org/schema/GeoJSON.json" /></VisualStudio></ProjectExtensions>
